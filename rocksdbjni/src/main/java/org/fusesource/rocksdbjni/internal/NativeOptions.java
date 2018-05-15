@@ -30,16 +30,20 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 package org.fusesource.rocksdbjni.internal;
-
+	
 import org.fusesource.hawtjni.runtime.JniClass;
 import org.fusesource.hawtjni.runtime.JniField;
 import org.fusesource.hawtjni.runtime.JniMethod;
 
+import static org.fusesource.hawtjni.runtime.ArgFlag.POINTER_ARG;
 import static org.fusesource.hawtjni.runtime.ClassFlag.CPP;
 import static org.fusesource.hawtjni.runtime.ClassFlag.STRUCT;
 import static org.fusesource.hawtjni.runtime.FieldFlag.CONSTANT;
 import static org.fusesource.hawtjni.runtime.FieldFlag.FIELD_SKIP;
+import static org.fusesource.hawtjni.runtime.FieldFlag.POINTER_FIELD;
+import static org.fusesource.hawtjni.runtime.MethodFlag.POINTER_RETURN;
 import static org.fusesource.hawtjni.runtime.MethodFlag.CONSTANT_INITIALIZER;
+
 
 /**
  * Provides a java interface to the C++ rocksdb::Options class.
@@ -48,43 +52,235 @@ import static org.fusesource.hawtjni.runtime.MethodFlag.CONSTANT_INITIALIZER;
  */
 @JniClass(name="rocksdb::Options", flags={STRUCT, CPP})
 public class NativeOptions {
-
-    static {
+	
+	    static {
         NativeDB.LIBRARY.load();
         init();
     }
 
-    @JniMethod(flags={CONSTANT_INITIALIZER})
+    
+	@JniMethod(flags={CONSTANT_INITIALIZER})
     private static final native void init();
 
     @JniField(flags={CONSTANT}, cast="Env*", accessor="rocksdb::Env::Default()")
     private static long DEFAULT_ENV;
-
-    private boolean create_if_missing = false;
-    private boolean error_if_exists = false;
-    private boolean paranoid_checks = false;
-    @JniField(cast="size_t")
-    private long write_buffer_size = 4 << 20;
-    @JniField(cast="size_t")
-    private long block_size = 4086;
-    private int max_open_files = 1000;
-    private int block_restart_interval = 16;
-
+    
     @JniField(flags={FIELD_SKIP})
     private NativeComparator comparatorObject = NativeComparator.BYTEWISE_COMPARATOR;
+    
     @JniField(cast="const rocksdb::Comparator*")
     private long comparator = comparatorObject.pointer();
+    
+    private boolean create_if_missing = false;
+    private boolean error_if_exists = false;
+    private boolean paranoid_checks = true;
+    private boolean create_missing_column_families = false;
+    private int num_levels = 2;
+    
+    public NativeOptions createmissingcolumnfamilies(boolean value) {
+        this.create_missing_column_families = value;
+        return this;
+    }
+    public boolean createmissingcolumnfamilies() {
+        return create_missing_column_families;
+    }
+    
+    private boolean use_fsync = false;
+    
+    public NativeOptions usefsync(boolean value) {
+        this.use_fsync = value;
+        return this;
+    }
+    public boolean usefsync() {
+        return use_fsync;
+    }
+    
+    private boolean allow_mmap_reads = false;
+    
+    public NativeOptions allowmmapreads(boolean value) {
+        this.allow_mmap_reads = value;
+        return this;
+    }
+    public boolean allowmmapreads() {
+        return allow_mmap_reads;
+    }
+    
+    private boolean allow_mmap_writes = false;
+    
+    public NativeOptions allowmmapwrites(boolean value) {
+        this.allow_mmap_writes = value;
+        return this;
+    }
+    public boolean allowmmapwrites() {
+        return allow_mmap_writes;
+    }
+    private boolean new_table_reader_for_compaction_inputs = false;
+    
+    public NativeOptions newtablereaderforcompactioninputs(boolean value) {
+        this.new_table_reader_for_compaction_inputs = value;
+        return this;
+    }
+    public boolean newtablereaderforcompactioninputs() {
+        return new_table_reader_for_compaction_inputs;
+    }
+    
+    @JniField(cast="size_t")
+    private long write_buffer_size = 4 << 20;
+    
+    private int max_open_files = 1000;
+    
+    @JniField(cast="uint64_t")
+    private long max_total_wal_size =0;
+    
+    @JniField(cast="uint64_t")
+    private long delete_obsolete_files_period_micros = 60 * 60 * 1000000;
+
+    
 
     @JniField(flags={FIELD_SKIP})
     private NativeLogger infoLogObject = null;
-//    @JniField(cast="rocksdb::Logger*")
-//    private long info_log = 0;
 
     @JniField(cast="rocksdb::Env*")
     private long env = DEFAULT_ENV;
 
     @JniField(cast="rocksdb::CompressionType")
     private int compression = NativeCompressionType.kSnappyCompression.value;
+    
+    @JniField
+    private int max_background_jobs = 2;
+      
+    public NativeOptions maxbackgroundjobs(int  max_background_jobs) {
+        this.max_background_jobs = max_background_jobs;
+        return this;
+    }
+    
+    @JniField
+    private int base_background_compactions = -1;
+    
+    public NativeOptions basebackgroundcompactions(int  base_background_compactions) {
+        this.base_background_compactions = base_background_compactions;
+        return this;
+    }
+
+    @JniField
+    private int max_background_compactions =-1;
+    
+    public NativeOptions maxbackgroundcompactions(int  max_background_compactions) {
+        this.max_background_compactions = max_background_compactions;
+        return this;
+    }
+
+    @JniField(cast="uint32_t")
+    private long max_subcompactions = 1;
+    
+    public NativeOptions maxsubcompactions(long value) {
+        this.max_subcompactions = value;
+        return this;
+    }
+    public long maxsubcompactions() {
+        return max_subcompactions;
+    }
+
+    @JniField
+    private int max_background_flushes = -1;
+    
+    public NativeOptions maxbackgroundflushes(int  max_background_flushes) {
+        this.max_background_flushes = max_background_flushes;
+        return this;
+    }
+
+    @JniField(cast="size_t")
+    private long max_log_file_size =0;
+    
+    public NativeOptions maxlogfilesize(long value) {
+        this.max_log_file_size = value;
+        return this;
+    }
+    public long maxlogfilesize() {
+        return max_log_file_size;
+    }
+    
+    @JniField(cast="size_t")
+    private long log_file_time_to_roll =0;
+    
+    public NativeOptions logfiletimetoroll(long value) {
+        this.log_file_time_to_roll = value;
+        return this;
+    }
+    public long logfiletimetoroll() {
+        return log_file_time_to_roll;
+    }
+    
+    @JniField(cast="size_t")
+    private long keep_log_file_num =1000;
+    
+    public NativeOptions keeplogfilenum(long value) {
+        this.keep_log_file_num = value;
+        return this;
+    }
+    public long keeplogfilenum() {
+        return keep_log_file_num;
+    }
+    
+    @JniField(cast="size_t")
+    private long db_write_buffer_size =0;
+    
+    public NativeOptions dbwritebuffersize(long value) {
+        this.db_write_buffer_size = value;
+        return this;
+    }
+    public long dbwritebuffersize() {
+        return db_write_buffer_size;
+    }
+    
+    @JniField(cast="size_t")
+    private long compaction_readahead_size =0;
+    
+    public NativeOptions compactionreadaheadsize(long value) {
+        this.compaction_readahead_size = value;
+        return this;
+    }
+    public long compactionreadaheadsize() {
+        return compaction_readahead_size;
+    }
+    
+    @JniField(cast="size_t")
+    private long random_access_max_buffer_size =1024 * 1024;
+    
+    public NativeOptions randomaccessmaxbuffersize(long value) {
+        this.random_access_max_buffer_size = value;
+        return this;
+    }
+    public long randomaccessmaxbuffersize() {
+        return random_access_max_buffer_size;
+    }
+    
+    @JniField(cast="size_t")
+    private long writable_file_max_buffer_size =1024 * 1024;
+    
+    public NativeOptions writablefilemaxbuffersize(long value) {
+        this.writable_file_max_buffer_size = value;
+        return this;
+    }
+    public long writablefilemaxbuffersize() {
+        return writable_file_max_buffer_size;
+    }
+    
+    public NativeOptions deleteobsoletefilesperiodmicros(long value) {
+        this.delete_obsolete_files_period_micros = value;
+        return this;
+    }
+    public long deleteobsoletefilesperiodmicros() {
+        return delete_obsolete_files_period_micros;
+    }
+    
+    public NativeOptions maxtotalwalsize(long value) {
+        this.max_total_wal_size = value;
+        return this;
+    }
+    public long maxtotalwalsize() {
+        return max_total_wal_size;
+    }
 
     public NativeOptions createIfMissing(boolean value) {
         this.create_if_missing = value;
@@ -126,24 +322,6 @@ public class NativeOptions {
         return max_open_files;
     }
 
-    public NativeOptions blockRestartInterval(int value) {
-        this.block_restart_interval = value;
-        return this;
-    }
-    public int blockRestartInterval() {
-        return block_restart_interval;
-    }
-
-    public NativeOptions blockSize(long value) {
-        this.block_size = value;
-        return this;
-    }
-    public long blockSize() {
-        return block_size;
-    }
-
-//    @JniField(cast="Env*")
-//    private long env = DEFAULT_ENV;
 
     public NativeComparator comparator() {
         return comparatorObject;
@@ -158,20 +336,16 @@ public class NativeOptions {
         return this;
     }
 
+    
     public NativeLogger infoLog() {
         return infoLogObject;
-    }
+      }
 
     public NativeOptions infoLog(NativeLogger logger) {
-        this.infoLogObject = logger;
-//        if( logger ==null ) {
-//            this.info_log = 0;
-//        } else {
-//            this.info_log = logger.pointer();
-//        }
-        return this;
+    this.infoLogObject = logger;
+    return this;
     }
-
+      
     public NativeCompressionType compression() {
         if(compression == NativeCompressionType.kNoCompression.value) {
             return NativeCompressionType.kNoCompression;
@@ -185,6 +359,14 @@ public class NativeOptions {
     public NativeOptions compression(NativeCompressionType compression) {
         this.compression = compression.value;
         return this;
+    }
+    
+    public NativeOptions numLevels(int value) {
+        this.num_levels = value;
+        return this;
+      }
+      public int numLevels() {
+        return num_levels;
     }
 
 }

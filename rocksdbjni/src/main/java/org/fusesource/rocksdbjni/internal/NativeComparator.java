@@ -55,7 +55,13 @@ public abstract class NativeComparator extends NativeObject {
             init();
         }
 
-        @JniMethod(flags={CPP_NEW})
+        public ComparatorJNI(long getComparator) {
+			
+		}
+		public ComparatorJNI() {
+			
+		}
+		@JniMethod(flags={CPP_NEW})
         public static final native long create();
         @JniMethod(flags={CPP_DELETE})
         public static final native void delete(long ptr);

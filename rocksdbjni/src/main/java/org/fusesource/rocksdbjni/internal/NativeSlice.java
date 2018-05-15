@@ -55,13 +55,14 @@ class NativeSlice {
             init();
         }
 
-        @JniMethod(flags={CPP_DELETE})
+        @JniMethod(flags={CPP_DELETE})//delete function not available for given type,Slice.h delete returns
+        //pinnable slice pointer
         public static final native void delete(
                 long self
                 );
 
         public static final native void memmove (
-                @JniArg(cast="void *") long dest,
+                @JniArg(cast="void *") long dest,//dest not available
                 @JniArg(cast="const void *", flags={NO_OUT, CRITICAL}) NativeSlice src,
                 @JniArg(cast="size_t") long size);
 
@@ -84,10 +85,16 @@ class NativeSlice {
     private long data_;
     @JniField(cast="size_t")
     private long size_;
-
+    
     public NativeSlice() {
     }
+    
 
+    public NativeSlice(long bound) {
+    	this.size_=bound;
+    }
+
+   
     public NativeSlice(long data, long length) {
         this.data_ = data;
         this.size_ = length;
@@ -155,6 +162,13 @@ class NativeSlice {
     void read(long buffer, int index) {
         SliceJNI.memmove(this, PointerMath.add(buffer, SliceJNI.SIZEOF*index), SliceJNI.SIZEOF);
     }
+    
+    //added because of nativereadoptions
+	public long pointer() {
+		
+		return this.pointer();
+		
+	}
     
 
 }

@@ -33,6 +33,8 @@ package org.fusesource.rocksdbjni.test;
 
 import junit.framework.TestCase;
 import org.fusesource.rocksdbjni.JniDBFactory;
+import org.fusesource.rocksdbjni.internal.JniColumnFamilyHandle;
+import org.fusesource.rocksdbjni.internal.JniColumnFamilyOptions;
 import org.fusesource.rocksdbjni.internal.JniDB;
 import org.iq80.leveldb.*;
 import org.junit.Test;
@@ -55,10 +57,10 @@ public class DBTest extends TestCase {
 
     File getTestDirectory(String name) throws IOException {
         File rc = new File(new File("test-data"), name);
-        factory.destroy(rc, new Options().createIfMissing(true));
         rc.mkdirs();
         return rc;
     }
+  	
 
     @Test
     public void testOpen() throws IOException {
@@ -67,7 +69,11 @@ public class DBTest extends TestCase {
 
         File path = getTestDirectory(getName());
         DB db = factory.open(path, options);
-
+        
+        db.put(bytes("Tampa"), bytes("green"));
+        
+        db.destroydb(path, options);
+       
         db.close();
 
         // Try again.. this time we expect a failure since it exists.
@@ -76,10 +82,9 @@ public class DBTest extends TestCase {
             factory.open(path, options);
             fail("Expected exception.");
         } catch (IOException e) {
+        	
         }
-
     }
-
     @Test
     public void testRepair() throws IOException, DBException {
         testCRUD();
@@ -206,6 +211,7 @@ public class DBTest extends TestCase {
         }
         iterator.close();
         assertEquals(expecting, actual);
+        
 
         db.close();
     }
@@ -252,7 +258,8 @@ public class DBTest extends TestCase {
 
         String stats = db.getProperty("rocksdb.stats");
         assertNotNull(stats);
-        assertTrue(stats.contains("Compactions"));
+        assertTrue(stats.contains("Compaction Stats"));
+     	assertTrue(stats.contains("DB Stats"));
 
         db.close();
     }
@@ -267,6 +274,7 @@ public class DBTest extends TestCase {
             }
 
             public String name() {
+            	
                 return getName();
             }
 
@@ -346,76 +354,77 @@ public class DBTest extends TestCase {
         db.close();
     }
 
-//    @Test
-//    public void testLogger() throws IOException, InterruptedException, DBException {
-//        final List<String> messages = Collections.synchronizedList(new ArrayList<String>());
-//
-//        Options options = new Options().createIfMissing(true);
-//        options.logger(new Logger() {
-//            public void log(String message) {
-//                messages.add(message);
-//            }
-//        });
-//
-//        File path = getTestDirectory(getName());
-//        DB db = factory.open(path, options);
-//
-//        for( int j=0; j < 5; j++) {
-//            Random r = new Random(0);
-//            String data="";
-//            for(int i=0; i < 1024; i++) {
-//                data+= 'a'+r.nextInt(26);
-//            }
-//            for(int i=0; i < 5*1024; i++) {
-//                db.put(bytes("row"+i), bytes(data));
-//            }
-//            Thread.sleep(100);
-//        }
-//
-//        db.close();
-//
-//        assertFalse(messages.isEmpty());
-//
-//    }
+   /* @Test
+    public void testLogger() throws IOException, InterruptedException, DBException {
+        final List<String> messages = Collections.synchronizedList(new ArrayList<String>());
 
-//    @Test
-//    public void testCompactRanges() throws IOException, InterruptedException, DBException {
-//        Options options = new Options().createIfMissing(true);
-//        File path = getTestDirectory(getName());
-//        DB db = factory.open(path, options);
-//        if( db instanceof JniDB) {
-//            Random r = new Random(0);
-//            String data="";
-//            for(int i=0; i < 1024; i++) {
-//                data+= 'a'+r.nextInt(26);
-//            }
-//            for(int i=0; i < 5*1024; i++) {
-//                db.put(bytes("row"+i), bytes(data));
-//            }
-//            for(int i=0; i < 5*1024; i++) {
-//                db.delete(bytes("row" + i));
-//            }
-//
-//            String stats = db.getProperty("rocksdb.stats");
-//            System.out.println(stats);
-//
-//            //                                     Compactions
-//            //                         Level  Files Size(MB) Time(sec) Read(MB) Write(MB)
-//            //                         --------------------------------------------------
-//            assertFalse(stats.contains("1        0        0         0"));
-//            assertFalse(stats.contains("2        0        0         0"));
-//
-//            // After the compaction, level 1 and 2 should not have any files in it..
-//            ((JniDB) db).compactRange(null, null);
-//
-//            stats = db.getProperty("rocksdb.stats");
-//            System.out.println(stats);
-//            assertTrue(stats.contains("1        0        0         0"));
-//            assertTrue(stats.contains("2        0        0         0"));
-//
-//        }
-//        db.close();
-//    }
+        Options options = new Options().createIfMissing(true);
+        options.logger(new Logger() {
+            public void log(String message) {
+                messages.add(message);
+                System.out.println("DBTest message ="+message);
+            }
+        });
+
+        File path = getTestDirectory(getName());
+        DB db = factory.open(path, options);
+
+        for( int j=0; j < 1; j++) {
+            Random r = new Random(0);
+            String data="";
+            for(int i=0; i < 1024; i++) {
+                data+= 'a'+r.nextInt(26);
+                }
+          //System.out.println(data);
+            for(int i=0; i < 1*1024; i++) {
+                db.put(bytes("row"+i), bytes(data));
+            }
+            Thread.sleep(100);
+        }
+
+        db.close();
+        
+        assertFalse(messages.isEmpty());
+
+    }*/
+
+    @Test
+    public void testCompactRanges() throws IOException, InterruptedException, DBException {
+        Options options = new Options().createIfMissing(true);
+        File path = getTestDirectory(getName());
+        DB db = factory.open(path, options);
+        if( db instanceof JniDB) {
+            Random r = new Random(0);
+            String data="";
+            for(int i=0; i < 1024; i++) {
+                data+= 'a'+r.nextInt(26);
+            }
+            for(int i=0; i < 5*1024; i++) {
+                db.put(bytes("row"+i), bytes(data));
+            }
+            for(int i=0; i < 5*1024; i++) {
+                db.delete(bytes("row" + i));
+            }
+
+            String stats = db.getProperty("rocksdb.stats");
+
+            //                                               Compaction
+                                    //Level    Files   Size     Score Read(GB)  Rn(GB) Rnp1(GB) Write(GB)
+            //-------------------------------------------------------------------
+	        assertFalse(stats.contains("L0     0/0     0.00 KB"));
+
+            // After the compaction, level 1 should not have any files in it..
+
+	        CompactRangeOptions compact = new CompactRangeOptions();
+            ((JniDB) db).compactRange(compact,null, null);
+
+            stats = db.getProperty("rocksdb.stats");
+	         assertTrue(stats.contains("L0      0/0    0.00 KB"));
+	         assertTrue(stats.contains("L1      0/0    0.00 KB"));
+
+        }
+        db.close();
+    }
 
     public void assertEquals(byte[] arg1, byte[] arg2) {
         assertTrue(Arrays.equals(arg1, arg2));
@@ -445,6 +454,117 @@ public class DBTest extends TestCase {
     }
 
     @Test
+    public void testSeekForPrev() throws IOException, DBException { 
+    	
+    Options options = new Options().createIfMissing(true);
+    File path = getTestDirectory(getName());
+    DB db = factory.open(path, options);
+    
+    db.put(bytes("c1"), bytes("black"));
+    db.put(bytes("a3"), bytes("green"));
+    db.put(bytes("a5"), bytes("red"));
+    db.put(bytes("b1"), bytes("blue"));
+    
+         
+    ArrayList<String> expecting = new ArrayList<String>();
+    
+    expecting.add("b1");
+    
+    ArrayList<String> actual = new ArrayList<String>();
+    
+    //Checking refresh without readoptions.snapshot
+    
+    DBIterator iterator = db.iterator();
+    
+    iterator.refreshIterator();
+    
+    iterator.close();
+    
+    //Checking refresh with readoptions.snapshot
+    
+    ReadOptions ro = new ReadOptions().snapshot(db.getSnapshot());
+    
+    iterator = db.iterator();
+    
+    iterator.seekForPrev(bytes("b10"));
+    
+    actual.add(asString(iterator.peekNext().getKey()));
+    
+    iterator.refreshIterator();
+    
+    iterator.close();
+    
+   assertEquals(expecting, actual);
+
+    db.close();
+}
+    @Test
+    public void testNewWriteBatch() throws IOException ,DBException
+    {
+    	Options options=new Options().createIfMissing(true);
+    	
+    	
+    	
+    	 File path=getTestDirectory(getName());
+         DB db=factory.open(path, options);
+         
+         
+        WriteBatch batch=db.createWriteBatch();
+        
+        ColumnFamilyHandle handle = new JniColumnFamilyHandle();
+         
+        //to test functionality of singledelete with only the assosiated key wee have to use put functionality
+        //with only the key and value.
+        
+        batch.put(bytes("New York"), bytes("red"));
+        batch.put(bytes("Canada"), bytes("blue"));
+            
+        db.write(batch);
+        
+        assertEquals(db.get(bytes("Canada")),bytes("blue"));
+               
+        batch.single_delete(bytes("Canada"));
+         
+        db.write(batch);
+        
+        assertNotSame(db.get(bytes("Canada")),bytes("blue"));
+        
+        assertNull(db.get(bytes("Canada")));
+        
+        batch.put(handle,bytes("Tampa"), bytes("green"));
+        batch.put(handle,bytes("London"), bytes("red"));
+        
+        db.write(batch);
+        
+        assertEquals(db.get(bytes("Tampa")),bytes("green"));
+        assertEquals(db.get(bytes("London")),bytes("red"));
+        
+        batch.single_delete(handle, bytes("Tampa"));
+        batch.delete(handle,bytes("London"));
+        
+        db.write(batch);
+        
+        assertNull(db.get(bytes("Tampa")));
+        assertNull(db.get(bytes("London")));  
+        
+        batch.put(handle,bytes("Tampa"), bytes("green"));
+        
+        db.write(batch);
+        
+        batch.deleteRange(handle,bytes("Tampa"), bytes("green"));
+        
+        db.write(batch);
+        
+        assertNull(db.get(bytes("Tampa")));
+        
+        db.write(batch);
+        batch.close();
+         
+        db.close();
+        
+    }
+
+    @Test
     public void testIssue27() throws IOException {
 
         Options options = new Options();
@@ -458,6 +578,179 @@ public class DBTest extends TestCase {
         } catch(DBException e) {
         }
 
+    } 
+    
+    
+    @Test
+    public void testColumnFamily() throws IOException, DBException {
+    Options options = new Options().createIfMissing(true);
+    File path = getTestDirectory(getName());
+    DB db = factory.open(path, options);
+
+    if( db instanceof JniDB) {
+
+         JniColumnFamilyOptions columnOptions = new JniColumnFamilyOptions();
+
+         ColumnFamilyHandle columnFamilyHandles =  new JniColumnFamilyHandle();
+         columnFamilyHandles =((JniDB) db).createColumnFamily(columnOptions,path);
+
+        ((JniDB) db).put(columnFamilyHandles,bytes("Tampa"), bytes("green"));
+        ((JniDB) db).put(columnFamilyHandles,bytes("Verma"), bytes("red"));
+        ReadOptions ro = new ReadOptions().fillCache(true).verifyChecksums(true);
+        assertEquals((db.get(bytes("Tampa"), ro)), bytes("green"));
+        assertEquals((db.get(bytes("Verma"), ro)), bytes("red"));
+        ((JniDB) db).singleDelete(columnFamilyHandles,bytes("Verma"));
+        assertNotSame((db.get(bytes("Verma"), ro)), bytes("red"));
+        ((JniDB) db).destroyColumnFamily(columnFamilyHandles);
+        WriteOptions wo = new WriteOptions().sync(false);
+        ((JniDB) db).delete(bytes("New York"), wo, columnFamilyHandles);
+
+        }
+        db.close();
     }
 
+       @Test
+    	public void testDeleteRange() throws IOException, DBException {
+        Options options = new Options().createIfMissing(true);
+        File path = getTestDirectory(getName());
+        DB db = factory.open(path, options);
+
+        if( db instanceof JniDB) {
+
+         JniColumnFamilyOptions columnOptions = new JniColumnFamilyOptions();
+
+         ColumnFamilyHandle columnFamilyHandles =  new JniColumnFamilyHandle();
+
+         columnFamilyHandles =((JniDB) db).createColumnFamily(columnOptions,path);
+
+
+         ((JniDB) db).put(columnFamilyHandles,bytes("key1"), bytes("green"));
+
+        ((JniDB) db).put(columnFamilyHandles,bytes("key2"), bytes("red"));
+        ((JniDB) db).put(columnFamilyHandles,bytes("key3"), bytes("blue"));
+        ((JniDB) db).put(columnFamilyHandles,bytes("key4"), bytes("white"));
+        ((JniDB) db).put(columnFamilyHandles,bytes("key5"), bytes("white"));
+
+         ((JniDB) db).deleteRange(columnFamilyHandles,bytes("key2"), bytes("key5"));
+         assertNull(db.get(bytes("key2")));
+         assertNull(db.get(bytes("key3")));
+         assertNull(db.get(bytes("key4")));
+
+         ((JniDB) db).destroyColumnFamily(columnFamilyHandles);
+
+        }
+        db.close();
+    } 
+
+      @Test
+       public void testOpenForReadOnly() throws IOException, DBException {
+       Options options = new Options().createIfMissing(true);
+       File path = getTestDirectory(getName());
+       DB db = factory.open(path, options);
+       db.put(bytes("Tampa"), bytes("green"));
+       DB db2 = factory.openForReadOnly(path,options);
+       assertEquals(db2.get(bytes("Tampa")), bytes("green"));
+
+       try {
+                db2.put(bytes("Tampa"), bytes("red"));
+               fail("Expected exception.");
+       } catch (Exception e) {
+       }
+       db2.close();
+       db.close();
+   } 
+    @Test
+    public void testGetIntProperty() throws IOException, DBException {
+        Options options = new Options().createIfMissing(true);
+
+       File path = getTestDirectory(getName());
+       DB db = factory.open(path, options);
+
+       Random r = new Random(0);
+       String data="";
+       for(int i=0; i < 1024; i++) {
+           data+= 'a'+r.nextInt(26);
+       }
+       for(int i=0; i < 5*1024; i++) {
+           db.put(bytes("row"+i), bytes(data));
+       }
+
+
+        assertNotNull(db.getIntProperty("rocksdb.estimate-num-keys"));
+
+       db.close();
+   }
+ 
+    
+    @Test
+    public void testKeyMayExist() throws IOException, DBException {
+        Options options = new Options().createIfMissing(true);
+
+        File path = getTestDirectory(getName());
+        DB db = factory.open(path, options);
+        
+        ReadOptions ro = new ReadOptions().fillCache(true).verifyChecksums(true);
+
+        db.put(bytes("Tampa"), bytes("green"));
+        db.put(bytes("London"), bytes("red"));
+        db.put(bytes("New York"), bytes("blue"));
+        
+        assertTrue(db.keyMayExist(bytes("Tampa"), ro));
+        assertTrue(db.keyMayExist(bytes("London"), ro));
+        assertTrue(db.keyMayExist(bytes("New York"), ro));
+
+        assertFalse(db.keyMayExist(bytes("New Yorkhsd"), ro));
+
+        db.close();
+    }
+    
+    @Test
+    public void testgetPropertyIterator() throws IOException, DBException {
+        Options options = new Options().createIfMissing(true);
+
+        File path = getTestDirectory(getName());
+        DB db = factory.open(path, options);
+        
+        db.put(bytes("Tampa"), bytes("green"));
+        db.put(bytes("London"), bytes("red"));
+        db.put(bytes("New York"), bytes("blue"));
+
+        ArrayList<String> expecting = new ArrayList<String>();
+        expecting.add("London");
+        expecting.add("New York");
+        expecting.add("Tampa");
+
+        ArrayList<String> actual = new ArrayList<String>();
+
+        DBIterator iterator = db.iterator();
+        for (iterator.seekToFirst(); iterator.hasNext(); iterator.next()) {
+            actual.add(asString(iterator.peekNext().getKey()));
+        }
+        
+        String prop = iterator.getProperty("rocksdb.iterator.super-version-number");
+        assertEquals(prop, "1");
+        
+        iterator.close();
+        assertEquals(expecting, actual);
+
+
+        db.close();
+    }
+    
+    @Test
+    public void testNumberLevels() throws IOException, DBException {
+        Options options = new Options().createIfMissing(true);
+
+        File path = getTestDirectory(getName());
+        DB db = factory.open(path, options);
+        
+        db.put(bytes("Tampa"), bytes("green"));
+        db.put(bytes("London"), bytes("red"));
+        db.put(bytes("New York"), bytes("blue"));
+
+        assertNotNull(db.numberLevels());
+
+        db.close();
+    }
+    
 }

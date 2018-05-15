@@ -32,6 +32,7 @@
 package org.fusesource.rocksdbjni.internal;
 
 import org.fusesource.hawtjni.runtime.*;
+import org.fusesource.rocksdbjni.internal.NativeDB.DBException;
 
 import static org.fusesource.hawtjni.runtime.MethodFlag.*;
 import static org.fusesource.hawtjni.runtime.ArgFlag.*;
@@ -75,6 +76,12 @@ public class NativeIterator extends NativeObject {
                 long self,
                 @JniArg(flags={BY_VALUE, NO_OUT}) NativeSlice target
                 );
+        
+        @JniMethod(flags={CPP_METHOD})
+        static final native void SeekForPrev(
+                long self,
+                @JniArg(flags={BY_VALUE, NO_OUT}) NativeSlice target
+                );
 
         @JniMethod(flags={CPP_METHOD})
         static final native void Next(
@@ -100,12 +107,40 @@ public class NativeIterator extends NativeObject {
         static final native long status(
                 long self
                 );
+        
+        @JniMethod(copy="rocksdb::Status", flags={CPP_METHOD})
+        static final native long GetProperty(
+                long self,
+                @JniArg(cast="std::string") String prop_name,
+                @JniArg(cast="std::string *") long value
+                );
+        
+        @JniMethod(copy="rocksdb::Status", flags={CPP_METHOD})
+        static final native long Refresh(
+                long self
+                );
     }
 
     NativeIterator(long self) {
         super(self);
     }
-
+    
+    public String getProperty(String value) throws DBException {
+   	 NativeDB.checkArgNotNull(value, "key");
+   	 NativeStdString prop = new NativeStdString();
+   	 byte[] property = getProperty(value,prop);
+   	 return new String(property);
+   }
+   
+	public byte[] getProperty(String value,NativeStdString prop) throws DBException {
+        try {
+			NativeDB.checkStatus(IteratorJNI.GetProperty(self, value, prop.pointer()));
+			return prop.toByteArray();
+		} finally {
+			
+		}
+		
+   }
     public void delete() {
         assertAllocated();
         IteratorJNI.delete(self);
@@ -119,6 +154,12 @@ public class NativeIterator extends NativeObject {
 
     private void checkStatus() throws NativeDB.DBException {
         NativeDB.checkStatus(IteratorJNI.status(self));
+    }
+    
+public void refreshIterator() throws NativeDB.DBException {
+        
+        NativeDB.checkStatus(IteratorJNI.Refresh(self));
+        
     }
 
     public void seekToFirst() {
@@ -148,6 +189,26 @@ public class NativeIterator extends NativeObject {
     private void seek(NativeSlice keySlice) throws NativeDB.DBException {
         assertAllocated();
         IteratorJNI.Seek(self, keySlice);
+        checkStatus();
+    }
+    
+    public void seekForPrev(byte[] key) throws NativeDB.DBException {
+        NativeDB.checkArgNotNull(key, "key");
+        NativeBuffer keyBuffer = NativeBuffer.create(key);
+        try {
+        	seekForPrev(keyBuffer);
+        } finally {
+            keyBuffer.delete();
+        }
+    }
+
+    private void seekForPrev(NativeBuffer keyBuffer) throws NativeDB.DBException {
+    	seekForPrev(new NativeSlice(keyBuffer));
+    }
+
+    private void seekForPrev(NativeSlice keySlice) throws NativeDB.DBException {
+        assertAllocated();
+        IteratorJNI.SeekForPrev(self, keySlice);
         checkStatus();
     }
 

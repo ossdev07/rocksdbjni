@@ -32,6 +32,7 @@
 package org.fusesource.rocksdbjni.internal;
 
 import org.fusesource.rocksdbjni.internal.NativeDB;
+import org.fusesource.rocksdbjni.internal.NativeDB.DBException;
 import org.fusesource.rocksdbjni.internal.NativeIterator;
 import org.iq80.leveldb.DBIterator;
 
@@ -57,10 +58,28 @@ public class JniDBIterator implements DBIterator {
     public void remove() {
         throw new UnsupportedOperationException();
     }
+    
+    @Override
+    public void refreshIterator() throws DBException {
+        
+        iterator.refreshIterator();
+    }
 
     public void seek(byte[] key) {
         try {
             iterator.seek(key);
+        } catch (NativeDB.DBException e) {
+            if( e.isNotFound() ) {
+                throw new NoSuchElementException();
+            } else {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+    
+    public void seekForPrev(byte[] key) {
+        try {
+            iterator.seekForPrev(key);
         } catch (NativeDB.DBException e) {
             if( e.isNotFound() ) {
                 throw new NoSuchElementException();
@@ -149,6 +168,14 @@ public class JniDBIterator implements DBIterator {
         }
         return rc;
     }
+
+	@Override
+	public String getProperty(String value) throws DBException {
+		
+		String prop = iterator.getProperty(value);
+		
+		return prop;
+	}
 
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011, FuseSource Corp.  All rights reserved.
+ * Copyright (C) 2018, FuseSource Corp.  All rights reserved.
  *
  *     http://fusesource.com
  *
@@ -32,36 +32,26 @@
 package org.fusesource.rocksdbjni.internal;
 
 /**
- * A helper base class which is used to track a pointer to a native
- * structure or class.
+ * Provides a java interface to the C++ rocksdb::CompressionType enum.
  *
  * @author <a href="http://hiramchirino.com">Hiram Chirino</a>
  */
-class NativeObject {
+public enum NativeReadTier {
+    kReadAllTier(0x0),
+kBlockCacheTier(0x1),
+kPersistedTier(0x2),
+kMemtableTier(0x3) ;
 
-    protected long self;
+	
+	
+    final long value;
 
-    protected NativeObject(long self) {
-        this.self = self;
-        if( self ==0 ) {
-            throw new OutOfMemoryError("Failure allocating native heap memory");
-        }
+    NativeReadTier(long value) {
+        this.value = value;
     }
 
-    public NativeObject() {
-		// TODO Auto-generated constructor stub
+	public long pointer() {
+		
+		return this.pointer();
 	}
-
-	long pointer() {
-        return self;
-    }
-
-    public boolean isAllocated() {
-        return self !=0;
-    }
-
-    protected void assertAllocated() {
-        assert isAllocated() : "This object has been deleted";
-    }
-
 }

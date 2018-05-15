@@ -75,6 +75,9 @@
 #include "rocksdb/comparator.h"
 #include "rocksdb/env.h"
 #include "rocksdb/slice.h"
+#include "rocksdb/merge_operator.h"
+
+
 
 struct JNIComparator : public rocksdb::Comparator {
   jobject target;
@@ -100,6 +103,7 @@ struct JNIComparator : public rocksdb::Comparator {
 };
 
 struct JNILogger : public rocksdb::Logger {
+
   jobject target;
   jmethodID log_method;
 

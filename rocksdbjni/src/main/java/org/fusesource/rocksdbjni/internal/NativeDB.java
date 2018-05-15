@@ -84,7 +84,51 @@ public class NativeDB extends NativeObject {
                 @JniArg(flags={BY_VALUE, NO_OUT}) NativeOptions options,
                 @JniArg(cast="const char*") String path,
                 @JniArg(cast="rocksdb::DB**") long[] self);
+        
+        
+        @JniMethod(copy="rocksdb::Status", flags={CPP_METHOD})
+        static final native long DeleteRange(
+        		long self,
+                @JniArg(flags={BY_VALUE, NO_OUT}) NativeWriteOptions options,
+                @JniArg(cast="rocksdb::ColumnFamilyHandle *") long handle,
+                @JniArg(flags={BY_VALUE, NO_OUT}) NativeSlice key,
+                @JniArg(flags={BY_VALUE, NO_OUT}) NativeSlice value
+                );
+        
+        @JniMethod(copy="rocksdb::Status", accessor = "rocksdb::DB::OpenForReadOnly")
+        static final native long OpenForReadOnly(
+                @JniArg(flags={BY_VALUE, NO_OUT}) NativeOptions options,
+                @JniArg(cast="const char*") String path,
+                @JniArg(cast="rocksdb::DB**") long[] self,
+                boolean error_if_log_file_exist
+                );
 
+        @JniMethod(copy="rocksdb::Status", flags={CPP_METHOD})
+        static final native long SingleDelete(
+                long self,
+                @JniArg(flags={BY_VALUE, NO_OUT}) NativeWriteOptions options,
+                @JniArg(flags={BY_VALUE, NO_OUT}) NativeSlice key
+                );
+        
+        @JniMethod(copy="rocksdb::ColumnFamilyHandle *", flags={CPP_METHOD})
+        static final native long DefaultColumnFamily(
+                long self);
+        
+        @JniMethod(copy="rocksdb::Status", flags={CPP_METHOD})
+        static final native long SingleDelete(
+                long self,
+                @JniArg(flags={BY_VALUE, NO_OUT}) NativeWriteOptions options,
+                @JniArg(cast="rocksdb::ColumnFamilyHandle *") long handle,
+                @JniArg(flags={BY_VALUE, NO_OUT}) NativeSlice key
+                );
+        
+        @JniMethod(flags={CPP_METHOD})
+        static final native boolean GetIntProperty(
+                long self,
+                @JniArg(flags={BY_VALUE, NO_OUT}) NativeSlice key,
+                @JniArg(cast="uint64_t*") long[] sizes
+                );
+        
         @JniMethod(copy="rocksdb::Status", flags={CPP_METHOD})
         static final native long Put(
                 long self,
@@ -92,11 +136,49 @@ public class NativeDB extends NativeObject {
                 @JniArg(flags={BY_VALUE, NO_OUT}) NativeSlice key,
                 @JniArg(flags={BY_VALUE, NO_OUT}) NativeSlice value
                 );
+        
+        @JniMethod(copy="rocksdb::Status", flags={CPP_METHOD})
+        static final native long Put(
+                long self,
+                @JniArg(flags={BY_VALUE, NO_OUT}) NativeWriteOptions options,
+                @JniArg(cast="rocksdb::ColumnFamilyHandle *") long handle,
+                @JniArg(flags={BY_VALUE, NO_OUT}) NativeSlice key,
+                @JniArg(flags={BY_VALUE, NO_OUT}) NativeSlice value
+                );
+        
+        
+        @JniMethod(copy="rocksdb::Status", flags={CPP_METHOD})
+        static final native long CreateColumnFamily(
+                long self,
+                @JniArg(flags={BY_VALUE, NO_OUT}) NativeColumnFamilyOptions options,
+                @JniArg(cast="const char*") String column_family_name,
+                @JniArg(cast="rocksdb::ColumnFamilyHandle**") long[] handle
+                );
+        
+        @JniMethod(copy="rocksdb::Status", flags={CPP_METHOD})
+        static final native long DropColumnFamily(
+                long self,
+                @JniArg(cast="rocksdb::ColumnFamilyHandle *") long handle
+                );
 
+        @JniMethod(copy="rocksdb::Status", flags={CPP_METHOD})
+        static final native long DestroyColumnFamilyHandle(
+                long self,
+                @JniArg(cast="rocksdb::ColumnFamilyHandle *") long handle
+                );
+        
         @JniMethod(copy="rocksdb::Status", flags={CPP_METHOD})
         static final native long Delete(
                 long self,
                 @JniArg(flags={BY_VALUE, NO_OUT}) NativeWriteOptions options,
+                @JniArg(flags={BY_VALUE, NO_OUT}) NativeSlice key
+                );
+        
+        @JniMethod(copy="rocksdb::Status", flags={CPP_METHOD})
+        static final native long Delete(
+                long self,
+                @JniArg(flags={BY_VALUE, NO_OUT}) NativeWriteOptions options,
+                @JniArg(cast="rocksdb::ColumnFamilyHandle *") long handle,
                 @JniArg(flags={BY_VALUE, NO_OUT}) NativeSlice key
                 );
 
@@ -106,7 +188,16 @@ public class NativeDB extends NativeObject {
                 @JniArg(flags={BY_VALUE}) NativeWriteOptions options,
                 @JniArg(cast="rocksdb::WriteBatch *") long updates
                 );
-
+      
+        
+        @JniMethod(flags={CPP_METHOD})
+        static final native boolean KeyMayExist(
+                long self,
+                @JniArg(flags={BY_VALUE, NO_OUT}) NativeReadOptions read,
+                @JniArg(flags={BY_VALUE, NO_OUT}) NativeSlice key,
+                @JniArg(cast="std::string *") long value
+                );
+        
         @JniMethod(copy="rocksdb::Status", flags={CPP_METHOD})
         static final native long Get(
                 long self,
@@ -155,14 +246,19 @@ public class NativeDB extends NativeObject {
         static final native long RepairDB(
                 @JniArg(cast="const char*") String path,
                 @JniArg(flags={BY_VALUE, NO_OUT}) NativeOptions options);
-
+        
         @JniMethod(flags={CPP_METHOD})
         static final native void CompactRange(
-                long self,
-                @JniArg(flags={NO_OUT}) NativeSlice begin,
-                @JniArg(flags={NO_OUT}) NativeSlice end
+		        long self,
+		        @JniArg(flags={BY_VALUE, NO_OUT}) NativeCompactRangeOptions CompactRangeOptions,
+		        @JniArg(flags={NO_OUT}) NativeSlice begin,
+		        @JniArg(flags={NO_OUT}) NativeSlice end
+		        );
+        
+        @JniMethod(flags={CPP_METHOD})
+        static final native int NumberLevels(
+                long self
                 );
-
     }
 
     public void delete() {
@@ -219,7 +315,157 @@ public class NativeDB extends NativeObject {
         }
         return new NativeDB(rc[0]);
     }
+    
+    public static NativeDB openforReadOnly(NativeOptions options, File path) throws IOException, DBException {
+        checkArgNotNull(options, "options");
+        checkArgNotNull(path, "path");
+        long rc[] = new long[1];
+         boolean error_if_log_file_exist =true;
+        try {
+            checkStatus(DBJNI.OpenForReadOnly(options, path.getCanonicalPath(), rc,error_if_log_file_exist));
+        } catch (IOException e) {
+            if( rc[0]!=0 ) {
+                DBJNI.delete(rc[0]);
+            }
+            throw e;
+        }
+        return new NativeDB(rc[0]);
+    }
+    
+    public NativeColumnFamilyHandle createColumnFamily(NativeColumnFamilyOptions options, File path) throws IOException, DBException { 	
+        checkArgNotNull(options, "options");
+        checkArgNotNull(path, "path");
+        long rc[] = new long[1];
+        try {
+        	assertAllocated();
+            checkStatus(DBJNI.CreateColumnFamily(self,options, path.getCanonicalPath(), rc));
+        } catch (IOException e) {
+            if( rc[0]!=0 ) {
+            	DBJNI.delete(rc[0]);
+            }
+            throw e;
+        }finally {
+        	DBJNI.delete(rc[0]);
+        }
+        return new NativeColumnFamilyHandle(rc[0]);
+      }
+    
+    public void dropColumnFamily(NativeColumnFamilyHandle handle) throws DBException {
+        checkArgNotNull(handle, "handle");
+        assertAllocated();
+        try {
+        	
+        	checkStatus(DBJNI.DropColumnFamily(self, handle.pointer())); 
+        	
+        }catch (IOException e) {
+        }
+    }
+    
+    public void destroyColumnFamilyHandle(NativeColumnFamilyHandle handle) throws DBException {
+        assertAllocated();
+        try {
+        	checkStatus(DBJNI.DestroyColumnFamilyHandle(self, handle.pointer()));        	
+        }catch (IOException e) {
+        }
+    }
+        public void deleteRange(NativeWriteOptions options, NativeColumnFamilyHandle handle,byte[] key, byte[] value) throws DBException {
+        checkArgNotNull(options, "options");
+        checkArgNotNull(handle, "handle");
+        checkArgNotNull(key, "key");
+        checkArgNotNull(value, "value");
+        NativeBuffer keyBuffer = NativeBuffer.create(key);
+        try {
+            NativeBuffer valueBuffer = NativeBuffer.create(value);
+            try {
+            	deleteRange(options,handle, keyBuffer, valueBuffer);
+            } finally {
+                valueBuffer.delete();
+            }
+        } finally {
+            keyBuffer.delete();
+        }
+    }
 
+    private void deleteRange(NativeWriteOptions options, NativeColumnFamilyHandle handle, NativeBuffer keyBuffer, NativeBuffer valueBuffer) throws DBException {
+    	deleteRange(options, handle,new NativeSlice(keyBuffer), new NativeSlice(valueBuffer));
+    }
+
+    private void deleteRange(NativeWriteOptions options, NativeColumnFamilyHandle handle, NativeSlice keySlice, NativeSlice valueSlice) throws DBException {
+        assertAllocated();
+        checkStatus(DBJNI.DeleteRange(self, options,handle.pointer(), keySlice, valueSlice));
+    }
+    
+    public void singleDelete(NativeWriteOptions options,NativeColumnFamilyHandle handle, byte[] key) throws DBException {
+        checkArgNotNull(options, "options");
+        checkArgNotNull(key, "key");
+        NativeBuffer keyBuffer = NativeBuffer.create(key);
+        try {
+            	singleDelete(options,handle, keyBuffer);
+        } finally {
+            keyBuffer.delete();
+        }
+    }
+
+    private void singleDelete(NativeWriteOptions options,NativeColumnFamilyHandle handle, NativeBuffer keyBuffer) throws DBException {
+    	singleDelete(options,handle, new NativeSlice(keyBuffer));
+    }
+
+    private void singleDelete(NativeWriteOptions options,NativeColumnFamilyHandle handle, NativeSlice key) throws DBException {
+        assertAllocated();
+        checkStatus(DBJNI.SingleDelete(self, options,handle.pointer(),key));
+    }
+    
+    public void singleDelete(NativeWriteOptions options, byte[] key) throws DBException {
+        checkArgNotNull(options, "options");
+        checkArgNotNull(key, "key");
+        NativeBuffer keyBuffer = NativeBuffer.create(key);
+        try {
+            	singleDelete(options, keyBuffer);
+            
+        } finally {
+            keyBuffer.delete();
+        }
+    }
+
+    private void singleDelete(NativeWriteOptions options, NativeBuffer keyBuffer) throws DBException {
+    	singleDelete(options, new NativeSlice(keyBuffer));
+    }
+
+    private void singleDelete(NativeWriteOptions options, NativeSlice keySlice) throws DBException {
+        assertAllocated();
+        checkStatus(DBJNI.SingleDelete(self, options, keySlice));
+    }
+
+
+    public void put(NativeWriteOptions options, NativeColumnFamilyHandle handle,byte[] key, byte[] value) throws DBException {
+        checkArgNotNull(options, "options");
+        checkArgNotNull(handle, "handle");
+        checkArgNotNull(key, "key");
+        checkArgNotNull(value, "value");
+        NativeBuffer keyBuffer = NativeBuffer.create(key);
+        try {
+            NativeBuffer valueBuffer = NativeBuffer.create(value);
+            try {
+                put(options,handle, keyBuffer, valueBuffer);
+            } finally {
+                valueBuffer.delete();
+            }
+        } finally {
+            keyBuffer.delete();
+        }
+    }
+
+    private void put(NativeWriteOptions options, NativeColumnFamilyHandle handle, NativeBuffer keyBuffer, NativeBuffer valueBuffer) throws DBException {
+        put(options, handle,new NativeSlice(keyBuffer), new NativeSlice(valueBuffer));
+    }
+
+    private void put(NativeWriteOptions options, NativeColumnFamilyHandle handle, NativeSlice keySlice, NativeSlice valueSlice) throws DBException {
+        assertAllocated();
+       long s3 = DBJNI.Put(self, options,handle.pointer(), keySlice, valueSlice);
+       NativeStatus se= new NativeStatus(s3);
+       
+        checkStatus(DBJNI.Put(self, options,handle.pointer(), keySlice, valueSlice));
+    }
     public void put(NativeWriteOptions options, byte[] key, byte[] value) throws DBException {
         checkArgNotNull(options, "options");
         checkArgNotNull(key, "key");
@@ -265,13 +511,36 @@ public class NativeDB extends NativeObject {
         assertAllocated();
         checkStatus(DBJNI.Delete(self, options, keySlice));
     }
+    
+    public void delete(NativeWriteOptions options,NativeColumnFamilyHandle handle, byte[] key) throws DBException {
+        checkArgNotNull(options, "options");
+        checkArgNotNull(key, "key");
+        checkArgNotNull(handle, "handle");
+        NativeBuffer keyBuffer = NativeBuffer.create(key);
+        try {
+            delete(options,handle, keyBuffer);
+        } finally {
+            keyBuffer.delete();
+        }
+    }
+
+    private void delete(NativeWriteOptions options,NativeColumnFamilyHandle handle, NativeBuffer keyBuffer) throws DBException {
+        delete(options,handle, new NativeSlice(keyBuffer));
+    }
+
+    private void delete(NativeWriteOptions options,NativeColumnFamilyHandle handle, NativeSlice keySlice) throws DBException {
+        assertAllocated();
+        checkStatus(DBJNI.Delete(self, options, keySlice));
+    }
 
     public void write(NativeWriteOptions options, NativeWriteBatch updates) throws DBException {
         checkArgNotNull(options, "options");
         checkArgNotNull(updates, "updates");
         checkStatus(DBJNI.Write(self, options, updates.pointer()));
     }
-
+    
+   
+    
     public byte[] get(NativeReadOptions options, byte[] key) throws DBException {
         checkArgNotNull(options, "options");
         checkArgNotNull(key, "key");
@@ -349,7 +618,11 @@ public class NativeDB extends NativeObject {
         }
         return rc;
     }
-
+    
+    public void DefaultColumnFamily() throws IOException, DBException {
+        long handle=DBJNI.DefaultColumnFamily(self);
+    }
+    
     public String getProperty(String name) {
         checkArgNotNull(name, "name");
         NativeBuffer keyBuffer = NativeBuffer.create(name.getBytes());
@@ -383,12 +656,14 @@ public class NativeDB extends NativeObject {
         }
     }
 
-    public void compactRange(byte[] begin, byte[] end) {
+    public void compactRange(NativeCompactRangeOptions CompactRangeOptions, byte[] begin, byte[] end) {
+    	checkArgNotNull(CompactRangeOptions, "CompactRangeOptions");
+    	
         NativeBuffer keyBuffer = NativeBuffer.create(begin);
         try {
             NativeBuffer valueBuffer = NativeBuffer.create(end);
             try {
-                compactRange(keyBuffer, valueBuffer);
+                compactRange(CompactRangeOptions, keyBuffer, valueBuffer);
             } finally {
                 if( valueBuffer!=null ) {
                     valueBuffer.delete();
@@ -401,17 +676,18 @@ public class NativeDB extends NativeObject {
         }
     }
 
-    private void compactRange( NativeBuffer beginBuffer, NativeBuffer endBuffer) {
-        compactRange(NativeSlice.create(beginBuffer), NativeSlice.create(endBuffer));
+    private void compactRange(NativeCompactRangeOptions CompactRangeOptions, NativeBuffer beginBuffer, NativeBuffer endBuffer) {
+    	
+        compactRange(CompactRangeOptions,NativeSlice.create(beginBuffer), NativeSlice.create(endBuffer));
     }
 
-    private void compactRange( NativeSlice beginSlice, NativeSlice endSlice) {
+    private void compactRange(NativeCompactRangeOptions CompactRangeOptions, NativeSlice beginSlice, NativeSlice endSlice) {
         assertAllocated();
-        DBJNI.CompactRange(self, beginSlice, endSlice);
+        DBJNI.CompactRange(self,CompactRangeOptions, beginSlice, endSlice);
     }
 
 
-    static public void destroy(File path, NativeOptions options) throws IOException, DBException {
+    public static void destroy(File path, NativeOptions options) throws IOException, DBException {
         checkArgNotNull(options, "options");
         checkArgNotNull(path, "path");
         checkStatus(DBJNI.DestroyDB(path.getCanonicalPath(), options));
@@ -421,5 +697,59 @@ public class NativeDB extends NativeObject {
         checkArgNotNull(options, "options");
         checkArgNotNull(path, "path");
         checkStatus(DBJNI.RepairDB(path.getCanonicalPath(), options));
+    }
+        public boolean getIntProperty(String key) throws DBException {
+        checkArgNotNull(key, "key");
+        NativeBuffer keyBuffer = NativeBuffer.create(key.getBytes());
+            try {
+            	return getIntProperty(keyBuffer);
+        } finally {
+            keyBuffer.delete();
+        }
+    }
+
+    private boolean getIntProperty( NativeBuffer keyBuffer) throws DBException {
+    	return (getIntProperty(new NativeSlice(keyBuffer)));
+    }
+
+    private boolean getIntProperty(NativeSlice keySlice) throws DBException {
+        assertAllocated();
+        long[] rc= new long[1];
+        	return DBJNI.GetIntProperty(self, keySlice, rc);
+    }
+    
+    public boolean keyMayExist(NativeReadOptions options, byte[] key) throws DBException {
+        checkArgNotNull(options, "options");
+        checkArgNotNull(key, "key");
+        NativeBuffer keyBuffer = NativeBuffer.create(key);
+        try {
+            return keyMayExist(options, keyBuffer);
+        } finally {
+            keyBuffer.delete();
+        }
+    }
+
+    private boolean keyMayExist(NativeReadOptions options, NativeBuffer keyBuffer) throws DBException {
+        return keyMayExist(options, new NativeSlice(keyBuffer));
+    }
+
+    private boolean keyMayExist(NativeReadOptions options, NativeSlice keySlice) throws DBException {
+        assertAllocated();
+        NativeStdString result = new NativeStdString();
+        boolean s;
+        try {
+        	
+             s = DBJNI.KeyMayExist(self, options, keySlice, result.pointer());
+        }finally {
+                result.delete();
+            }
+		return s;   
+    }
+    
+      
+    public int numberLevels() {
+	int rc;
+        rc = DBJNI.NumberLevels(self);
+	return rc;
     }
 }

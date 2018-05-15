@@ -31,12 +31,18 @@
  */
 package org.fusesource.rocksdbjni.internal;
 
+import java.io.File;
+import java.io.IOException;
+
+import org.iq80.leveldb.ColumnFamilyHandle;
+import org.fusesource.rocksdbjni.internal.JniColumnFamilyHandle;
+import org.fusesource.rocksdbjni.internal.JniColumnFamilyOptions;
 import org.iq80.leveldb.*;
 
 /**
  * @author <a href="http://hiramchirino.com">Hiram Chirino</a>
  */
-public class JniDB implements DB {
+public class JniDB implements DB  {
 
     private NativeDB db;
     private NativeComparator comparator;
@@ -62,6 +68,19 @@ public class JniDB implements DB {
             }
         }
     }
+    
+    public boolean keyMayExist(byte[] key, ReadOptions options) throws DBException {
+        if( db==null ) {
+            throw new DBException("Closed");
+        }
+        try {
+            return db.keyMayExist(convert(options), key);
+        } catch (NativeDB.DBException e) {
+            throw new DBException(e.getMessage(), e);
+        }
+    }
+    
+   
 
 
     public byte[] get(byte[] key) throws DBException {
@@ -84,8 +103,19 @@ public class JniDB implements DB {
             throw new DBException(e.getMessage(), e);
         }
     }
-
-    public DBIterator iterator() {
+    
+    private NativeOptions convert(Options options) {
+    	if(options==null) {
+    		return null;
+    	}
+    	NativeOptions option = new NativeOptions();
+    	option.createIfMissing(options.createIfMissing());
+    	
+		return option; 
+	}
+    
+    
+	public DBIterator iterator() {
         return iterator(new ReadOptions());
     }
 
@@ -99,6 +129,12 @@ public class JniDB implements DB {
     public void put(byte[] key, byte[] value) throws DBException {
         put(key, value, new WriteOptions());
     }
+    
+    @Override
+    public void DefaultColumnFamily() throws IOException, org.fusesource.rocksdbjni.internal.NativeDB.DBException {
+        db.DefaultColumnFamily();
+    }
+   
 
     public void delete(byte[] key) throws DBException {
         delete(key, new WriteOptions());
@@ -124,12 +160,38 @@ public class JniDB implements DB {
         }
     }
 
+
+    public Snapshot put(NativeColumnFamilyHandle handle, byte[] key, byte[] value, WriteOptions options) throws DBException {
+        if( db==null ) {
+            throw new DBException("Closed");
+        }
+        try {
+            db.put(convert(options),handle, key, value);
+            return null;
+        } catch (NativeDB.DBException e) {
+            throw new DBException(e.getMessage(), e);
+        }
+    }
+
+    
     public Snapshot delete(byte[] key, WriteOptions options) throws DBException {
         if( db==null ) {
             throw new DBException("Closed");
         }
         try {
             db.delete(convert(options), key);
+            return null;
+        } catch (NativeDB.DBException e) {
+            throw new DBException(e.getMessage(), e);
+        }
+    }
+    
+    public Snapshot delete(byte[] key, WriteOptions options, ColumnFamilyHandle handle) throws DBException {
+        if( db==null ) {
+            throw new DBException("Closed");
+        }
+        try {
+            db.delete(convert(options),convert(handle), key);
             return null;
         } catch (NativeDB.DBException e) {
             throw new DBException(e.getMessage(), e);
@@ -197,14 +259,77 @@ public class JniDB implements DB {
         }
         return rc;
     }
+    
+     private NativeColumnFamilyHandle convert(ColumnFamilyHandle columnHandle) {
+    	
+    	if(columnHandle==null) {
+    		return null;
+    	}
+    	NativeColumnFamilyHandle rce = new NativeColumnFamilyHandle(columnHandle);
+		return rce;   
+    }
 
-    public void compactRange(byte[] begin, byte[] end) throws DBException {
+    
+    
+    public ColumnFamilyHandle createColumnFamily(JniColumnFamilyOptions columnOptions, File path) throws IOException {
+    	NativeColumnFamilyHandle handle = new NativeColumnFamilyHandle();
+    	handle = db.createColumnFamily(convert(columnOptions), path);	
+    	return new JniColumnFamilyHandle(handle);
+    }
+    
+    private NativeColumnFamilyOptions convert(JniColumnFamilyOptions columnFamily) {
+    	if(columnFamily==null) {
+    		return null;
+    	}
+    	NativeColumnFamilyOptions rce= new NativeColumnFamilyOptions();
+    	rce.write_buffer_size(columnFamily.writeBufferSize());
+		return rce;
+    	
+    }
+    
+    public void put( ColumnFamilyHandle handle, byte[] key, byte[] value) throws DBException{
+    	put(convert(handle), key, value,new WriteOptions());
+    }
+
+
+    public void dropColumnFamily(ColumnFamilyHandle columnHandle) throws IOException {
+		  db.dropColumnFamily(convert(columnHandle));
+    }
+   
+    public void destroydb(File path, Options options) {
+		 try {
+				NativeDB.destroy(path,convert(options));
+			} catch (IOException e) {
+				
+				e.printStackTrace();
+			}
+		
+	}
+    
+    public void destroyColumnFamily(ColumnFamilyHandle columnHandle) {
+		  try {
+			db.destroyColumnFamilyHandle(convert(columnHandle));
+		} catch (org.fusesource.rocksdbjni.internal.NativeDB.DBException e) {
+			e.printStackTrace();
+		}
+		
+	}
+    
+    public void compactRange(CompactRangeOptions compactRangeOptions,byte[] begin, byte[] end) throws DBException {
         if( db==null ) {
             throw new DBException("Closed");
         }
-        db.compactRange(begin, end);
+        db.compactRange(convert(compactRangeOptions),begin, end);
     }
 
+    private NativeCompactRangeOptions convert(CompactRangeOptions options) {
+        if(options==null) {
+            return null;
+        }
+        NativeCompactRangeOptions rc = new NativeCompactRangeOptions(options);
+        return rc;
+    }
+    
     public void suspendCompactions() throws InterruptedException {
         throw new UnsupportedOperationException();
     }
@@ -213,4 +338,81 @@ public class JniDB implements DB {
         throw new UnsupportedOperationException();
     }
 
+
+
+
+	@Override
+	public void deleteRange(ColumnFamilyHandle handle, byte[] begin, byte[] end) throws DBException {
+			deleteRange(handle, begin, end, new WriteOptions());
+			
+	}
+
+	private void deleteRange(ColumnFamilyHandle handle, byte[] begin, byte[] end, WriteOptions writeOptions) {
+        if( db==null ) {
+            throw new DBException("Closed");
+        }
+        try {
+            db.deleteRange(convert(writeOptions),convert(handle), begin, end);
+            
+        } catch (NativeDB.DBException e) {
+            throw new DBException(e.getMessage(), e);
+        }
+		
+	}
+
+	@Override
+	public void singleDelete(byte[] key) throws DBException {
+		singleDelete(key, new WriteOptions());
+	}
+
+	private void singleDelete(byte[] key, WriteOptions writeOptions) {
+		if( db==null ) {
+            throw new DBException("Closed");
+        }
+        try {
+            db.singleDelete(convert(writeOptions), key);
+            
+        } catch (NativeDB.DBException e) {
+            throw new DBException(e.getMessage(), e);
+        }
+		
+	}
+
+	public void singleDelete(ColumnFamilyHandle columnFamilyHandles, byte[] key) {
+		singleDelete(key,columnFamilyHandles, new WriteOptions());
+		
+	}
+	
+	private void singleDelete(byte[] key,ColumnFamilyHandle columnFamilyHandles, WriteOptions writeOptions) {
+		if( db==null ) {
+            throw new DBException("Closed");
+        }
+        try {
+            db.singleDelete(convert(writeOptions),convert(columnFamilyHandles), key);
+            
+        } catch (NativeDB.DBException e) {
+            throw new DBException(e.getMessage(), e);
+        }
+		
+	}
+
+	@Override
+    public boolean getIntProperty(String key) throws DBException {
+	  if( db==null ) {
+      throw new DBException("Closed");
+    }
+    try {
+     return db.getIntProperty(key);
+      
+     } catch (NativeDB.DBException e) {
+      throw new DBException(e.getMessage(), e);
+    }
+	
+  }
+	
+	@Override
+	public int numberLevels() throws DBException {
+		return db.numberLevels();
+		
+	}
 }

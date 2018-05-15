@@ -32,10 +32,12 @@
 package org.fusesource.rocksdbjni;
 
 import org.fusesource.rocksdbjni.internal.*;
+
 import org.iq80.leveldb.*;
 
 import java.io.*;
 import java.net.URL;
+import java.util.List;
 import java.util.concurrent.Callable;
 
 /**
@@ -91,18 +93,16 @@ public class JniDBFactory implements DBFactory {
         NativeComparator comparator=null;
         NativeLogger logger=null;
         NativeOptions options;
+       
 
         public void init(Options value) {
-
             options = new NativeOptions();
-            options.blockRestartInterval(value.blockRestartInterval());
-            options.blockSize(value.blockSize());
             options.createIfMissing(value.createIfMissing());
             options.errorIfExists(value.errorIfExists());
             options.maxOpenFiles(value.maxOpenFiles());
             options.paranoidChecks(value.paranoidChecks());
             options.writeBufferSize(value.writeBufferSize());
-
+           
             switch(value.compressionType()) {
                 case NONE:
                     options.compression(NativeCompressionType.kNoCompression);
@@ -127,18 +127,24 @@ public class JniDBFactory implements DBFactory {
                 };
                 options.comparator(comparator);
             }
-
+          
             final Logger userLogger = value.logger();
             if(userLogger!=null) {
+            	
+            	
                 logger = new NativeLogger() {
+             	
                     @Override
                     public void log(String message) {
+                    	
                         userLogger.log(message);
+                        
                     }
                 };
+               
                 options.infoLog(logger);
             }
-
+          
         }
         public void close() {
             if(comparator!=null){
@@ -156,6 +162,22 @@ public class JniDBFactory implements DBFactory {
         try {
             holder.init(options);
             db = NativeDB.open(holder.options, path);
+        } finally {
+            // if we could not open up the DB, then clean up the
+            // other allocated native resouces..
+            if(db==null) {
+                holder.close();
+            }
+        }
+        return new JniDB(db, holder.comparator, holder.logger);
+    }
+    
+    public DB openForReadOnly(File path, Options options) throws IOException {
+        NativeDB db=null;
+        OptionsResourceHolder holder = new OptionsResourceHolder();
+        try {
+            holder.init(options);
+            db = NativeDB.openforReadOnly(holder.options, path);
         } finally {
             // if we could not open up the DB, then clean up the
             // other allocated native resouces..

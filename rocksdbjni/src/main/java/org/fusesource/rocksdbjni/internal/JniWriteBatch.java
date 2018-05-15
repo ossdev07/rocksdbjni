@@ -32,6 +32,7 @@
 package org.fusesource.rocksdbjni.internal;
 
 import org.fusesource.rocksdbjni.internal.NativeWriteBatch;
+import org.iq80.leveldb.ColumnFamilyHandle;
 import org.iq80.leveldb.WriteBatch;
 
 /**
@@ -44,6 +45,7 @@ public class JniWriteBatch implements WriteBatch {
     JniWriteBatch(NativeWriteBatch writeBatch) {
         this.writeBatch = writeBatch;
     }
+    
 
     public void close() {
         writeBatch.delete();
@@ -57,9 +59,54 @@ public class JniWriteBatch implements WriteBatch {
     public WriteBatch delete(byte[] key) {
         writeBatch.delete(key);
         return this;
-    }
-
-    public NativeWriteBatch writeBatch() {
+	}
+    
+	 public NativeWriteBatch writeBatch() {
         return writeBatch;
     }
+
+	@Override
+	public WriteBatch deleteRange(byte[] key, byte[] value) {
+		 writeBatch.deleteRange(key, value);
+	        return this;
+	}
+
+	@Override
+	public WriteBatch deleteRange(ColumnFamilyHandle columnFamilyHandles, byte[] key, byte[] value) {
+		writeBatch.deleteRange(convert(columnFamilyHandles),key, value);
+        return this;
+	}
+	
+        private NativeColumnFamilyHandle convert(ColumnFamilyHandle columnHandle) {
+    	
+    	if(columnHandle==null) {
+    		return null;
+    	}
+    	NativeColumnFamilyHandle rce = new NativeColumnFamilyHandle(columnHandle);
+		return rce;   
+    }
+
+		
+    public WriteBatch put(ColumnFamilyHandle handle,byte[] key, byte[] value) {
+        writeBatch.put(convert(handle),key, value);
+        return this;
+    }
+
+    public WriteBatch delete(ColumnFamilyHandle handle,byte[] key) {
+        writeBatch.delete(convert(handle),key);
+        return this;
+    }
+    
+
+	@Override
+	public WriteBatch single_delete(ColumnFamilyHandle handle, byte[] key) {
+		writeBatch.single_delete(convert(handle),key);
+        return this;
+	}
+	
+	@Override
+	public WriteBatch single_delete(  byte[] key) {
+		writeBatch.single_delete(key);
+        return this;
+	}
 }

@@ -1,12 +1,12 @@
 /*
- * Copyright (C) 2011, FuseSource Corp.  All rights reserved.
+ * Copyright (C) 2018, FuseSource Corp.  All rights reserved.
  *
  *     http://fusesource.com
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
- * 
+ *
  *    * Redistributions of source code must retain the above copyright
  * notice, this list of conditions and the following disclaimer.
  *    * Redistributions in binary form must reproduce the above
@@ -16,7 +16,7 @@
  *    * Neither the name of FuseSource Corp. nor the names of its
  * contributors may be used to endorse or promote products derived from
  * this software without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -31,90 +31,70 @@
  */
 package org.fusesource.rocksdbjni.internal;
 
-import org.fusesource.hawtjni.runtime.JniClass;
-import org.fusesource.hawtjni.runtime.JniField;
-
 import static org.fusesource.hawtjni.runtime.ClassFlag.CPP;
 import static org.fusesource.hawtjni.runtime.ClassFlag.STRUCT;
+import static org.fusesource.hawtjni.runtime.MethodFlag.*;
 
-/**
- * Provides a java interface to the C++ rocksdb::WriteOptions class.
- *
- * @author <a href="http://hiramchirino.com">Hiram Chirino</a>
- */
-@JniClass(name="rocksdb::WriteOptions", flags={STRUCT, CPP})
-public class NativeWriteOptions {
-
-    @JniField
-    boolean sync=false;
-
-@JniField
-    boolean disableWAL = false;
+import org.fusesource.hawtjni.runtime.JniArg;
+import org.fusesource.hawtjni.runtime.JniClass;
+import org.fusesource.hawtjni.runtime.JniField;
+import org.fusesource.hawtjni.runtime.JniMethod;
 
 
-@JniField
-    boolean ignore_missing_column_families = false;
+@JniClass(name="rocksdb::ColumnFamilyOptions", flags={STRUCT, CPP})
+public class NativeColumnFamilyOptions {
+
+	static {
+		NativeDB.LIBRARY.load();
+
+	}
+
+	@JniField(cast="size_t")
+		private long write_buffer_size = 4096 ;
+
+	public NativeColumnFamilyOptions write_buffer_size(long value) {
+		this.write_buffer_size = value;
+		return this;
+	}
+
+	public long write_buffer_size() {
+		return write_buffer_size;
+	}
 
 
-@JniField
-    boolean no_slowdown = false;
+	private int level0_file_num_compaction_trigger=4;
 
-@JniField
-    boolean low_pri = false;
+	@JniField(cast="uint64_t")
+		private long max_bytes_for_level_base = 268435456;
 
+	private boolean disable_auto_compactions = false;
 
+	public NativeColumnFamilyOptions level0_file_num_compaction_trigger(int value) {
+		this.level0_file_num_compaction_trigger = value;
+		return this;
+	}
 
+	public int level0_file_num_compaction_trigger() {
+		return level0_file_num_compaction_trigger;	
+	}	
 
+	public NativeColumnFamilyOptions disable_auto_compactions(boolean value) {
+		this.disable_auto_compactions = value;
+		return this;
+	}
 
-    public boolean sync() {
-        return sync;
-    }
+	public boolean disable_auto_compactions() {
+		return disable_auto_compactions;	
+	}	
 
-    public NativeWriteOptions sync(boolean sync) {
-        this.sync = sync;
-        return this;
-    }
+	public NativeColumnFamilyOptions max_bytes_for_level_base(long value) {
+		this.max_bytes_for_level_base = value;
+		return this;
+	}
 
-
-    public boolean disableWAL() {
-        return sync;
-    }
-
-    public NativeWriteOptions disableWAL(boolean disableWAL) {
-        this.disableWAL = disableWAL;
-        return this;
-    }
-
-
-    public boolean ignore_missing_column_families() {
-        return ignore_missing_column_families;
-    }
-
-    public NativeWriteOptions ignore_missing_column_families(boolean ignore_missing_column_families) {
-        this.ignore_missing_column_families = ignore_missing_column_families;
-        return this;
-    }
-
-
-    public boolean no_slowdown() {
-        return no_slowdown;
-    }
-
-    public NativeWriteOptions no_slowdown(boolean no_slowdown) {
-        this.no_slowdown = no_slowdown;
-        return this;
-    }
-
-
-    public boolean low_pri() {
-        return low_pri;
-    }
-
-    public NativeWriteOptions low_pri(boolean low_pri) {
-        this.low_pri = low_pri;
-        return this;
-    }
-
-
-	 
+	public long max_bytes_for_level_base() {
+		return max_bytes_for_level_base;
+	}
 }
+
+

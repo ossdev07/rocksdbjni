@@ -39,6 +39,7 @@ import static org.fusesource.hawtjni.runtime.ArgFlag.BY_VALUE;
 import static org.fusesource.hawtjni.runtime.ArgFlag.NO_OUT;
 import static org.fusesource.hawtjni.runtime.ClassFlag.CPP;
 import static org.fusesource.hawtjni.runtime.MethodFlag.*;
+import static org.fusesource.hawtjni.runtime.ArgFlag.CRITICAL;
 
 /**
  * Provides a java interface to the C++ rocksdb::WriteBatch class.
@@ -65,13 +66,57 @@ public class NativeWriteBatch extends NativeObject {
                 @JniArg(flags={BY_VALUE, NO_OUT}) NativeSlice key,
                 @JniArg(flags={BY_VALUE, NO_OUT}) NativeSlice value
                 );
+        
+        @JniMethod(flags={CPP_METHOD})
+        static final native void Put(
+                long self,
+                @JniArg(cast="rocksdb::ColumnFamilyHandle *", flags={NO_OUT, CRITICAL}) long column_family,
+                @JniArg(flags={BY_VALUE, NO_OUT}) NativeSlice key,
+                @JniArg(flags={BY_VALUE, NO_OUT}) NativeSlice value
+                );
 
         @JniMethod(flags={CPP_METHOD})
         static final native void Delete(
                 long self,
                 @JniArg(flags={BY_VALUE, NO_OUT}) NativeSlice key
                 );
-
+        
+        @JniMethod(flags={CPP_METHOD})
+        static final native void Delete(
+                long self,
+                @JniArg(cast="rocksdb::ColumnFamilyHandle *", flags={NO_OUT, CRITICAL}) long column_family,
+                @JniArg(flags={BY_VALUE, NO_OUT}) NativeSlice key
+                );
+        
+        @JniMethod(flags={CPP_METHOD})
+        static final native void SingleDelete(
+                long self,
+                @JniArg(cast="rocksdb::ColumnFamilyHandle *", flags={NO_OUT, CRITICAL}) long column_family,
+                @JniArg(flags={BY_VALUE, NO_OUT}) NativeSlice key
+                );
+        
+        @JniMethod(flags={CPP_METHOD})
+        static final native void SingleDelete(
+                long self,
+                @JniArg(flags={BY_VALUE, NO_OUT}) NativeSlice key
+                );
+				
+		 @JniMethod(flags={CPP_METHOD})
+        static final native void DeleteRange(
+                long self,
+                @JniArg(flags={BY_VALUE, NO_OUT}) NativeSlice key,
+                @JniArg(flags={BY_VALUE, NO_OUT}) NativeSlice value
+                );
+        
+        
+        @JniMethod(flags={CPP_METHOD})
+        static final native void DeleteRange(
+                long self,
+                @JniArg(cast="rocksdb::ColumnFamilyHandle *") long handle,
+                @JniArg(flags={BY_VALUE, NO_OUT}) NativeSlice key,
+                @JniArg(flags={BY_VALUE, NO_OUT}) NativeSlice value
+                );
+        
         @JniMethod(flags={CPP_METHOD})
         static final native void Clear(
                 long self
@@ -104,7 +149,7 @@ public class NativeWriteBatch extends NativeObject {
             keyBuffer.delete();
         }
     }
-
+    
     private void put(NativeBuffer keyBuffer, NativeBuffer valueBuffer) {
         put(new NativeSlice(keyBuffer), new NativeSlice(valueBuffer));
     }
@@ -112,6 +157,143 @@ public class NativeWriteBatch extends NativeObject {
     private void put(NativeSlice keySlice, NativeSlice valueSlice) {
         assertAllocated();
         WriteBatchJNI.Put(self, keySlice, valueSlice);
+    }
+
+    
+    public void put(NativeColumnFamilyHandle handle,byte[] key, byte[] value) {
+        NativeDB.checkArgNotNull(key, "key");
+        NativeDB.checkArgNotNull(value, "value");
+        NativeBuffer keyBuffer = NativeBuffer.create(key);
+        try {
+            NativeBuffer valueBuffer = NativeBuffer.create(value);
+            try {
+                put(handle,keyBuffer, valueBuffer);
+            } finally {
+                valueBuffer.delete();
+            }
+        } finally {
+            keyBuffer.delete();
+        }
+    }
+    
+    
+    private void put(NativeColumnFamilyHandle handle,NativeBuffer keyBuffer, NativeBuffer valueBuffer) {
+        put(handle,new NativeSlice(keyBuffer), new NativeSlice(valueBuffer));
+    }
+    
+    private void put(NativeColumnFamilyHandle handle,NativeSlice keySlice, NativeSlice valueSlice) {
+        assertAllocated();
+        WriteBatchJNI.Put(self,handle.pointer(), keySlice, valueSlice);
+    }
+    
+  
+
+    public void delete(NativeColumnFamilyHandle handle,byte[] key) {
+        NativeDB.checkArgNotNull(key, "key");
+        NativeBuffer keyBuffer = NativeBuffer.create(key);
+        try {
+            delete(handle,keyBuffer);
+        } finally {
+            keyBuffer.delete();
+        }
+    }
+
+    private void delete(NativeColumnFamilyHandle handle,NativeBuffer keyBuffer) {
+        delete(handle,new NativeSlice(keyBuffer));
+    }
+
+    private void delete(NativeColumnFamilyHandle handle,NativeSlice keySlice) {
+        assertAllocated();
+        WriteBatchJNI.Delete(self,handle.pointer(), keySlice);
+    }
+    
+    public void single_delete(NativeColumnFamilyHandle handle,byte[] key) {
+        NativeDB.checkArgNotNull(key, "key");
+        NativeBuffer keyBuffer = NativeBuffer.create(key);
+        try {
+        	single_delete(handle,keyBuffer);
+        } finally {
+            keyBuffer.delete();
+        }
+    }
+
+    private void single_delete(NativeColumnFamilyHandle handle,NativeBuffer keyBuffer) {
+    	single_delete(handle,new NativeSlice(keyBuffer));
+    }
+
+    private void single_delete(NativeColumnFamilyHandle handle,NativeSlice keySlice) {
+        assertAllocated();
+        WriteBatchJNI.SingleDelete(self,handle.pointer(), keySlice);
+    }
+    
+    public void single_delete( byte[] key) {
+        NativeDB.checkArgNotNull(key, "key");
+        NativeBuffer keyBuffer = NativeBuffer.create(key);
+        try {
+        	single_delete(keyBuffer);
+        } finally {
+            keyBuffer.delete();
+        }
+    }
+
+    private void single_delete(NativeBuffer keyBuffer) {
+    	single_delete(new NativeSlice(keyBuffer));
+    }
+
+    private void single_delete( NativeSlice keySlice) {
+        assertAllocated();
+        WriteBatchJNI.SingleDelete(self, keySlice);
+    }
+
+   
+    public void deleteRange(byte[] key, byte[] value) {
+        NativeDB.checkArgNotNull(key, "key");
+        NativeDB.checkArgNotNull(value, "value");
+        NativeBuffer keyBuffer = NativeBuffer.create(key);
+        try {
+            NativeBuffer valueBuffer = NativeBuffer.create(value);
+            try {
+            	deleteRange(keyBuffer, valueBuffer);
+            } finally {
+                valueBuffer.delete();
+            }
+        } finally {
+            keyBuffer.delete();
+        }
+    }
+
+    private void deleteRange(NativeBuffer keyBuffer, NativeBuffer valueBuffer) {
+    	deleteRange(new NativeSlice(keyBuffer), new NativeSlice(valueBuffer));
+    }
+
+    private void deleteRange(NativeSlice keySlice, NativeSlice valueSlice) {
+        assertAllocated();
+        WriteBatchJNI.DeleteRange(self, keySlice, valueSlice);
+    }
+
+   public void deleteRange(NativeColumnFamilyHandle handle,byte[] key, byte[] value) {
+        NativeDB.checkArgNotNull(key, "key");
+        NativeDB.checkArgNotNull(value, "value");
+        NativeBuffer keyBuffer = NativeBuffer.create(key);
+        try {
+            NativeBuffer valueBuffer = NativeBuffer.create(value);
+            try {
+            	deleteRange(handle,keyBuffer, valueBuffer);
+            } finally {
+                valueBuffer.delete();
+            }
+        } finally {
+            keyBuffer.delete();
+        }
+    }
+
+    private void deleteRange(NativeColumnFamilyHandle handle,NativeBuffer keyBuffer, NativeBuffer valueBuffer) {
+    	deleteRange(handle,new NativeSlice(keyBuffer), new NativeSlice(valueBuffer));
+    }
+
+    private void deleteRange(NativeColumnFamilyHandle handle,NativeSlice keySlice, NativeSlice valueSlice) {
+        assertAllocated();
+        WriteBatchJNI.DeleteRange(self,handle.pointer(), keySlice, valueSlice);
     }
 
 
@@ -134,6 +316,8 @@ public class NativeWriteBatch extends NativeObject {
         WriteBatchJNI.Delete(self, keySlice);
     }
 
+    
+    
     public void clear() {
         assertAllocated();
         WriteBatchJNI.Clear(self);
